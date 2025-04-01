@@ -1,1 +1,1 @@
-# life
+# Simple game life
