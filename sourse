@@ -1,0 +1,218 @@
+#include <iostream>
+#include <string>
+#include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
+#include<memory>
+#include<ctime>
+#include<cstdlib>
+#include <chrono>
+#include <thread>
+#include <vector>
+
+
+class Field {
+private:
+	sf::RenderWindow& window;
+	//bool flag = true;
+	const float width;
+	const float height;
+	float point_1 = 100;
+	float point_2 = 200;
+	std::vector<std::vector<sf::RectangleShape>> square;
+	std::vector<std::vector<int>> squareC;
+
+public:
+	Field(sf::RenderWindow& window, float one, float two) : window(window), height(one), width(two), square(two, std::vector<sf::RectangleShape>(one)), squareC(two, std::vector<int>(one, 0)) {
+
+		for (size_t i = 0; i < width; ++i) {
+			for (size_t j = 0; j < height; ++j) {
+				set(square, i, j);
+			}
+		}
+	}
+
+	void set(std::vector<std::vector<sf::RectangleShape>>& sq, size_t i, size_t j) {
+		sq[i][j].setOutlineColor(sf::Color(78, 87, 84));
+		sq[i][j].setOutlineThickness(1.f);
+		sq[i][j].setFillColor(sf::Color::Black);
+		sq[i][j].setPosition({ point_1 + 20.f * i, point_2 + 20.f * j });
+		sq[i][j].setSize({ 20.f, 20.f });
+	}
+
+	void choice(int& temp, int size, int zero) {
+		temp = rand() % 100;
+		while (temp <= zero || temp >= size) { temp = rand() % 100; }
+	}
+
+	void dra() {
+		for (size_t i = 0; i < width; ++i) {
+			for (size_t j = 0; j < height; ++j) {
+				window.draw(square[i][j]);
+			}
+		}
+	}
+
+	void start() {
+		restart();
+		int n = 0, x = 0, y = 0, i = 0, zero = 0;
+		choice(n, 2000, 40);
+		while (i < n) {
+			choice(x, 65, 20);
+			choice(y, 33, 10);
+			square[x][y].setFillColor(sf::Color::White);
+			i++;
+			window.draw(square[x][y]);
+		}
+		//square[0][3].setFillColor(sf::Color::White);
+		//window.draw(square[0][3]);
+		window.display();
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+		bool flag = true;
+		while (flag) {
+			newIter(flag);
+		}
+	}
+
+	void restart() {
+		for (size_t i = 0; i < width; ++i) {
+			for (size_t j = 0; j < height; ++j) {
+				square[i][j].setFillColor(sf::Color::Black);
+				window.draw(square[i][j]);
+			}
+		}
+		window.display();
+	}
+
+	void newIter(bool& flag) {
+		for (size_t i = 0; i < width; ++i) {
+			for (size_t j = 0; j < height; ++j) {
+				int liveNeib = countNeib(i, j, square);
+				if (square[i][j].getFillColor() == sf::Color::Black) {
+					if (liveNeib == 3) { square[i][j].setFillColor(sf::Color::White); window.draw(square[i][j]); }
+					else { window.draw(square[i][j]); }
+				}
+				else {
+					if (liveNeib < 2 || liveNeib > 3) { square[i][j].setFillColor(sf::Color::Black); window.draw(square[i][j]); }
+					else { window.draw(square[i][j]); }
+				}
+			}
+		}
+		window.display();
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		flag = comparison(square, squareC);
+		copy(square, squareC);
+	}
+
+	int countNeib(int i, int j, std::vector<std::vector<sf::RectangleShape>>& square) {
+		int x = 0, y = 0, count = 0;
+		for (x = i - 1; x < i + 2; x++) {
+			for (y = j - 1; y < j + 2; y++) {
+				if (x >= 0 && x < width && y >= 0 && y < height && (x != i || y != j)) {
+					if (square[x][y].getFillColor() == sf::Color::White) {
+						count++;
+					}
+				}
+			}
+		}
+		return count;
+	}
+
+	bool comparison(std::vector<std::vector<sf::RectangleShape>>& square, std::vector<std::vector<int>>& squareC) {
+		int s = 3400;
+		int z = 0;
+		for (size_t i = 0; i < width; ++i) {
+			for (size_t j = 0; j < height; ++j) {
+				if (square[i][j].getFillColor() == sf::Color::White) {
+					if (squareC[i][j] == 1) { z++; }
+				}
+				else { if (squareC[i][j] == 0) { z++; } }
+			}
+		}
+
+		if (z == s) { return false; }
+		else { return true; }
+	}
+
+	void copy(std::vector<std::vector<sf::RectangleShape>>& square, std::vector<std::vector<int>>& squareC) {
+		for (size_t i = 0; i < width; ++i) {
+			for (size_t j = 0; j < height; ++j) {
+				if (square[i][j].getFillColor() == sf::Color::White) squareC[i][j] = 1;
+			}
+		}
+	}
+
+	//void setFlag(bool f) {
+	//	flag = f;
+	//}
+};
+
+int main() {
+	srand(time(NULL));
+	sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Life", sf::Style::Default);
+	sf::Texture texfon;
+	if (!texfon.loadFromFile("texture/f.png")) return 3;
+
+	sf::Sprite sprite;
+	sprite.setTexture(texfon);
+	sf::Music music;
+	if (!music.openFromFile("Sound/df.ogg")) {
+		std::cerr << "Ошибка загрузки!" << std::endl;
+		return -1;
+	}
+
+	music.setLoop(true);
+	music.play();
+
+	sf::Vector2i mousePos;
+	sf::RectangleShape button_exit({ 50, 50 });
+	sf::Texture texexit;
+	if (!texexit.loadFromFile("texture/img1.png")) return 3;
+	button_exit.setTexture(&texexit, false);
+	button_exit.setPosition(5, 5);
+
+	sf::RectangleShape button_start({ 150, 50 });
+	sf::Texture texstart;
+	if (!texstart.loadFromFile("texture/start.jpg")) return 3;
+	button_start.setTexture(&texstart, false);
+	button_start.setPosition(850, 70);
+
+	sf::RectangleShape button_sound({ 50, 50 });
+	sf::Texture texson;
+	if (!texson.loadFromFile("texture/sound1.png")) return 3;
+	sf::Texture texsof;
+	if (!texsof.loadFromFile("texture/sound2.png")) return 3;
+	button_sound.setTexture(&texson, false);
+	button_sound.setPosition(70, 5);
+	bool soundch = true;
+
+	sf::Image icon;
+	if (!icon.loadFromFile("texture/icon.png")) return 3;
+	window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
+
+	Field field(window, 40, 85);
+
+	while (window.isOpen()) {
+		sf::Event event;
+		while (window.pollEvent(event)) {
+			if (event.type == sf::Event::MouseButtonPressed) {
+				mousePos = sf::Mouse::getPosition(window);
+				if (mousePos.x >= 5 && mousePos.x <= 55 && mousePos.y >= 5 && mousePos.y <= 55) { window.close(); }
+				else if (mousePos.x >= 850 && mousePos.x <= 1000 && mousePos.y >= 70 && mousePos.y <= 120) {
+					field.start();
+				}
+				else if (mousePos.x >= 70 && mousePos.x <= 120 && mousePos.y >= 5 && mousePos.y <= 55) { 
+					if (soundch == true) { button_sound.setTexture(&texsof, false); soundch = false; music.stop(); } else { button_sound.setTexture(&texson, false); soundch = true; music.setLoop(true); music.play();}
+				}
+			}
+		}
+
+		window.clear(sf::Color::Black);
+		window.draw(sprite);
+		window.draw(button_exit);
+		window.draw(button_sound);
+		window.draw(button_start);
+		field.dra();
+		window.display();
+	}
+	return 0;
+}
